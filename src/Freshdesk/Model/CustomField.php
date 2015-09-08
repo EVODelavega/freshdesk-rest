@@ -150,7 +150,7 @@ class CustomField extends Base
     /**
      * @return string
      */
-    public function toJsonData()
+    public function toJsonData($json = true)
     {
         return json_encode(
             array(

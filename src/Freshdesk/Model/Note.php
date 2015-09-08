@@ -7,6 +7,9 @@ class Note extends Base
 {
     const RESPONSE_KEY = 'note';
 
+    const SOURCE_NOTE = 2;
+    const SOURCE_MEDIA_INFO = 4;
+
     /**
      * @var \Freshdesk\Model\Ticket
      */
@@ -73,6 +76,23 @@ class Note extends Base
     protected $toDateTime = array(
         'setUpdatedAt',
         'setCreatedAt'
+    );
+
+    /**
+     * @var array
+     */
+    protected $mandatory  =array(
+        'body',
+        'private',
+    );
+
+    /**
+     * @var array
+     */
+    protected $readOnlyFields = array(
+        'id',
+        'createdAt', // dont post this to freshdesk
+        'updatedAt', // dont post this to freshdesk
     );
 
     /**
@@ -305,17 +325,17 @@ class Note extends Base
      * Ready-made to create a new freshdesk ticket
      * @return string
      */
-    public function toJsonData()
+    public function toJsonData($json = true)
     {
-        return json_encode(
-            array(
-                //note has oddity in used response key
-                'helpdesk_'.self::RESPONSE_KEY   => array(
-                    'body'      => $this->body,
-                    'private'   => $this->private
-                )
-            )
-        );
+        $data = parent::toJsonData(false);
+        $data['helpdesk_' . self::RESPONSE_KEY] = $data[self::RESPONSE_KEY];
+        unset($data[self::RESPONSE_KEY]);
+
+        if ($json === true) {
+            return json_encode($data);
+        } else {
+            return $data;
+        }
     }
 
 } 

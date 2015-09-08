@@ -6,12 +6,15 @@ use \Traversable,
     \InvalidArgumentException,
     \BadMethodCallException,
     \LogicException,
+    \RuntimeException,
     \stdClass,
     \Iterator,
-    \DateTime;
+    \DateTime,
+    \ReflectionClass,
+    \ReflectionMethod;
 
 
-abstract class Base implements Iterator
+abstract class Base implements \Freshdesk\Model, Iterator
 {
     const RESPONSE_KEY = '';
 
@@ -36,6 +39,21 @@ abstract class Base implements Iterator
     protected $toDateTime = array();
 
     /**
+     * mandatory fields to be able to post something to freshdesk
+     * fieldName or an array of [ fieldName, fieldName2, ... ]
+     *
+     * @var array
+     */
+    protected $mandatory = array();
+
+    /**
+     * fields who are set by freshdesk and are not modifiable via the api
+     *
+     * @var array
+     */
+    protected $readOnlyFields = array();
+
+    /**
      * $data should be an array, an instance of stdClass
      * OR an object that implements the \Traversable interface
      * @param null|array|\stdClass|\Traversable $data = null
@@ -53,11 +71,15 @@ abstract class Base implements Iterator
                     $class
                 )
             );
-        $methods = get_class_methods($this);
+        $reflectionClass = new ReflectionClass(get_class($this));
+        $methods = $reflectionClass->getMethods(
+            ReflectionMethod::IS_PUBLIC
+        );
         foreach ($methods as $method)
         {//use GETTERS for iterator interface
-            if (substr($method, 0, 3) === 'get')
-                $this->getters[] = $method;
+            $methodName = $method->name;
+            if (substr($methodName, 0, 3) === 'get')
+                $this->getters[] = $methodName;
         }
         if ($data === null)
             return $this;
@@ -208,10 +230,116 @@ abstract class Base implements Iterator
     }
 
     /**
-     * Every object must have toJsonDate method...
+     * generate json string that can be used to post/put to the freshdesk
+     * api
+     *
      * @return string
      */
-    abstract public function toJsonData();
+    public function toJsonData($json = true)
+    {
+        /**
+         * first check if all mandatory fields are there
+         * else throw exception not everything is there
+         */
+        $mandatoryFieldsOk = true;
+        foreach ($this->mandatory as $key => $mandatory) {
+            if (! is_numeric($key) && is_string($key)) {
+                $getter = 'get' . ucfirst($key);
+                $value = $this->{$getter}();
+                if (null !== $value) {
+                    $mandatoryFieldsOk &= true;
+                } else {
+                    if (is_array($mandatory)) {
+                        $ok = false;
+                        foreach ($mandatory as $oneOfSome) {
+                            $getter = 'get' . ucfirst($oneOfSome);
+                            $value = $this->{$getter}();
+                            if (null !== $value && $ok === false) {
+                                $ok = true;
+                            }
+                        }
+                        $mandatoryFieldsOk &= $ok;
+                    } elseif (is_string($mandatory)) {
+                        $getter = 'get' . ucfirst($mandatory);
+                        $value = $this->{$getter}();
+                        if (null !== $value) {
+                            $mandatoryFieldsOk &= true;
+                        } else {
+                            $mandatoryFieldsOk &= false;
+                        }
+                    } else {
+                        throw new Exception('Mandatory fields misconfigured!');
+                    }
+                }
+            } elseif (is_array($mandatory)) {
+                $ok = false;
+                foreach ($mandatory as $oneOfSome) {
+                    $getter = 'get' . ucfirst($oneOfSome);
+                    $value = $this->{$getter}();
+                    if (null !== $value && $ok === false) {
+                        $ok = true;
+                    }
+                }
+                $mandatoryFieldsOk &= $ok;
+            } elseif (is_string($mandatory)) {
+                $getter = 'get' . ucfirst($mandatory);
+                $value = $this->{$getter}();
+                if (null !== $value) {
+                    $mandatoryFieldsOk &= true;
+                } else {
+                    $mandatoryFieldsOk &= false;
+                }
+            } else {
+                throw new Exception('Mandatory fields misconfigured!');
+            }
+        }
+
+        if ($mandatoryFieldsOk != true) {
+            throw new RuntimeException('Not all mandatory fields are set.');
+        }
+
+        $jsonArray = array();
+
+        foreach ($this as $position => $value) {
+            $getter = $this->getters[$position];
+            $fieldName = $this->getFieldName($getter);
+            if (in_array($fieldName, $this->readOnlyFields)) {
+                continue;
+            }
+            if (!empty($value)) {
+                $jsonFieldName = $this->getJsonFieldName($getter);
+                if ($value instanceof \Freshdesk\Model) {
+                    $jsonArray[$jsonFieldName] = $value->toJsonData(false);
+                } else {
+                    $jsonArray[$jsonFieldName] = $value;
+                }
+            }
+        }
+
+        $data = array(
+            static::RESPONSE_KEY => $jsonArray
+        );
+
+        if ($json === true) {
+            return json_encode($data);
+        } else {
+            return $data;
+        }
+    }
+
+    protected function getFieldName($getter)
+    {
+        $field = lcfirst(str_replace('get', '', $getter));
+        return $field;
+    }
+
+    protected function getJsonFieldName($getter)
+    {
+        $getter = str_replace('get', '', $getter);
+        $jsonField = preg_replace("/(?<=[a-zA-Z])(?=[A-Z])/", "_", $getter);
+        $jsonField = strtolower($jsonField);
+        return $jsonField;
+    }
 
     /**
      * {@inheritdoc}
