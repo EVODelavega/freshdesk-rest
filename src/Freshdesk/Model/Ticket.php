@@ -188,8 +188,8 @@ class Ticket extends Base
      */
     protected $toDateTime = array(
         'setDueBy',
-        'createdAt', // dont post this to freshdesk
-        'updatedAt', // dont post this to freshdesk
+        'setCreatedAt', // dont post this to freshdesk
+        'setUpdatedAt', // dont post this to freshdesk
     );
 
     /**
