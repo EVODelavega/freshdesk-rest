@@ -10,6 +10,12 @@ use Freshdesk\Model\Ticket as TicketM,
 class Ticket extends Rest
 {
 
+    const SEARCH_FILTER = 'filter';
+    const SEARCH_REQUESTER = 'requester';
+    const SEARCH_COMPANY_NAME = 'company_name';
+    const SEARCH_COMPANY_ID = 'company_id';
+    const SEARCH_EMAIL = 'email';
+
     const FILTER_ALL = 'all_tickets';
     const FILTER_OPEN = 'open';
     const FILTER_HOLD = 'on_hold';
@@ -19,20 +25,208 @@ class Ticket extends Rest
     const FILTER_SPAM = 'spam';
     const FILTER_DELETED = 'deleted';
 
+    const SORT_CREATED = 'created_at';
+    const SORT_DUE = 'due_by';
+    const SORT_UPDATED = 'updated_at';
+    const SORT_PRIORITY = 'priority';
+    const SORT_STATUS = 'status';
+
+    const SORTDIR_ASC = 'asc';
+    const SORTDIR_DESC = 'desc';
 
     /**
      * Returns formatted url
-     * @param string $email
-     * @param string $filter = self::FILTER_ALL
+     * @param array $options
+     * array(
+     *   'search' => self::SEARCH_*,
+     *   'filter' => self::FILTER_*,
+     *   'value' => 'optional value',
+     *   'sort' => self::SORT_*,
+     *   'sortdir' => self::SORTDIR_*,
+     *   'page' => 2,
+     * );
      * @return string
+     * @throws InvalidArgumentException
      */
-    protected function getTicketUrl($email, $filter = self::FILTER_ALL)
+    protected function getGetTicketUrl($options = null)
     {
-        return sprintf(
-            '/helpdesk/tickets.json?email=%s&filter_name=%s',
-            $email,
-            $filter
+        $configration = array(
+            'search' => self::SEARCH_FILTER,
+            'filter' => self::FILTER_ALL,
+            'value' => null,
+            'sort' => null,
+            'sortdir' => null,
+            'page' => null,
         );
+
+        $url = '';
+
+        if (null === $options) {
+            $url = '/helpdesk/tickets.json';
+        } elseif (is_array($options)) {
+            $options = array_merge(
+                $configration,
+                $options
+            );
+
+            $this->checkSearch($options['search']);
+
+            switch ($options['search']) {
+            case self::SEARCH_REQUESTER:
+                $url = '/helpdesk/tickets/filter/requester/';
+                if (empty($options['value'])) {
+                    throw new InvalidArgumentException(
+                        'you must pass requester_id in the value'
+                    );
+                }
+                $url .= $options['value'];
+                // @todo check if we can add a filter here
+                break;
+            case self::SEARCH_COMPANY_NAME:
+            case self::SEARCH_COMPANY_ID:
+            case self::SEARCH_EMAIL:
+                if (empty($options['value'])) {
+                    throw new InvalidArgumentException(
+                        'you must pass ' . $options['search'] . ' in the value'
+                    );
+                }
+
+                // search
+                $url = '/helpdesk/tickets.json?' . $options['search']
+                    . '=' . $options['value'];
+
+                // filter
+                $url .= '&filter_name=' . $this->checkFilter($options['filter']);
+                break;
+            case self::SEARCH_FILTER:
+            default:
+                $url = '/helpdesk/tickets/filter/';
+
+                if (empty($options['filter'])) {
+                    throw new InvalidArgumentException(
+                        'filter must be set when using filter search'
+                    );
+                }
+                $url .= $this->checkFilter($options['filter']);
+                break;
+            }
+
+            // must add format=json
+            if ($options['search'] !== self::SEARCH_COMPANY_NAME
+                && $options['search'] !== self::SEARCH_COMPANY_ID
+                && $options['search'] !== self::SEARCH_EMAIL) {
+                if (stristr($url, '?')) {
+                    $url .= '&';
+                } else {
+                    $url .= '?';
+                }
+                $url .= "format=json";
+            }
+
+            // sort if set
+            if (!empty($options['sort'])) {
+                $sort = $this->checkSort($options['sort']);
+                $url .= '&wf_order=' . $sort;
+                // sort direction if set
+                if (!empty($options['sortdir'])) {
+                    $sortdir = $this->checkSortdir($options['sortdir']);
+                    $url .= '&wf_order_type=' . $sortdir;
+                }
+            }
+
+            // paging
+            if (!empty($options['page']) && is_numeric($options['page'])) {
+                $url .= '&page=' . (int) $options['page'];
+            }
+        } else {
+            throw new InvalidArgumentException('options must be null or array');
+        }
+
+        return $url;
+    }
+
+    /**
+     * check given search
+     *
+     * @param string $search
+     * @return string
+     * @throws InvalidArgumentException
+     */
+    protected function checkSearch($search)
+    {
+        if (self::SEARCH_FILTER !== $search
+            && self::SEARCH_REQUESTER !== $search
+            && self::SEARCH_COMPANY_NAME !== $search
+            && self::SEARCH_COMPANY_ID !== $search
+            && self::SEARCH_EMAIL !== $search) {
+            throw new InvalidArgumentException(
+                'search must match one of the predefined constants'
+            );
+        }
+        return $search;
+    }
+
+    /**
+     * check given filter
+     *
+     * @param string $filter
+     * @return string
+     * @throws InvalidArgumentException
+     */
+    protected function checkFilter($filter)
+    {
+        if (self::FILTER_ALL !== $filter
+            && self::FILTER_OPEN !== $filter
+            && self::FILTER_HOLD !== $filter
+            && self::FILTER_OVERDUE !== $filter
+            && self::FILTER_TODAY !== $filter
+            && self::FILTER_NEW !== $filter
+            && self::FILTER_SPAM !== $filter
+            && self::FILTER_DELETED !== $filter) {
+            throw new InvalidArgumentException(
+                'filter must be one of the predefined constants'
+            );
+        }
+        return $filter;
+    }
+
+    /**
+     * check given sort
+     *
+     * @param string $sort
+     * @return string
+     * @throws InvalidArgumentException
+     */
+    protected function checkSort($sort)
+    {
+        if (self::SORT_CREATED !== $sort
+            && self::SORT_DUE !== $sort
+            && self::SORT_UPDATED !== $sort
+            && self::SORT_PRIORITY !== $sort
+            && self::SORT_STATUS !== $sort) {
+            throw new InvalidArgumentException(
+                'sort must be one of the predefined constants'
+            );
+        }
+        return $sort;
+    }
+
+    /**
+     * check given sortdir
+     *
+     * @param string $sortdir
+     * @return string
+     * @throws InvalidArgumentException
+     */
+    protected function checkSortdir($sortdir)
+    {
+        if (self::SORTDIR_ASC !== $sortdir
+            && self::SORTDIR_DESC !== $sortdir) {
+            throw new InvalidArgumentException(
+                'sortdir must be one of the predefined constants'
+            );
+        }
+        return $sortdir;
     }
 
     /**
@@ -74,7 +268,12 @@ class Ticket extends Rest
                 )
             );
         $json = $this->restCall(
-            $this->getTicketUrl($email),
+            $this->getGetTicketUrl(
+                array(
+                    'search' => self::SEARCH_EMAIL,
+                    'value' => $email,
+                )
+            ),
             self::METHOD_GET
         );
         if (!$json)
@@ -141,9 +340,12 @@ class Ticket extends Rest
                 )
             );
         $json = $this->restCall(
-            $this->getTicketUrl(
-                $email,
-                self::FILTER_OPEN
+            $this->getGetTicketUrl(
+                array(
+                    'search' => self::SEARCH_EMAIL,
+                    'filter' => self::FILTER_OPEN,
+                    'value' => $email,
+                )
             ),
             self::METHOD_GET
         );
