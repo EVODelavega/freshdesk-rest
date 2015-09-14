@@ -436,6 +436,24 @@ class Ticket extends Rest
     }
 
     /**
+     * get all tickets knowing the requesterId
+     *
+     * @param int $requesterId
+     * @param bool $models
+     * @return null|array<Freshdesk\Model\Ticket>|array<array>
+     */
+    public function getTicketsByRequesterId($requesterId, $models = true)
+    {
+        return $this->getTickets(
+            array(
+                'search' => self::SEARCH_REQUESTER,
+                'value' => $requesterId,
+            ),
+            $models
+        );
+    }
+
+    /**
      * Get tickets in view, specify page, defaults to 0 === get all pages
      *
      * @todo getGetTicketUrl
