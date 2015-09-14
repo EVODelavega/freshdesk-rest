@@ -253,12 +253,59 @@ class Ticket extends Rest
     }
 
     /**
+     * Returns searched tickets
+     * @param array $options
+     * array(
+     *   'search' => self::SEARCH_*,
+     *   'filter' => self::FILTER_*,
+     *   'value' => 'optional value',
+     *   'sort' => self::SORT_*,
+     *   'sortdir' => self::SORTDIR_*,
+     *   'page' => 2,
+     * );
+     * @return array
+     * @throws InvalidArgumentException
+     */
+    public function getTickets($options, $models = true)
+    {
+        $json = $this->restCall(
+            $this->getGetTicketUrl($options),
+            self::METHOD_GET
+        );
+        if (!$json)
+            return null;
+
+        return $this->returnTickets($json, $models);
+    }
+
+    /**
+     * return ticket models or array<array>
+     *
+     * @return void
+     * @author Ike Devolder <ike.devolder@studioemma.eu>
+     */
+    protected function returnTickets($json, $models)
+    {
+        if (true === $models) {
+            $out = array();
+            foreach ($json as $ticket)
+            {
+                $out[] = new TicketM($ticket);
+            }
+            return $out;
+        } else {
+            return json_decode($json, true);
+        }
+    }
+
+    /**
      * Get all tickets from user (based on email)
      * @param string $email
+     * @param bool $models
      * @return null|\stdClass|array
      * @throws \InvalidArgumentException
      */
-    public function getTicketsByEmail($email)
+    public function getTicketsByEmail($email, $models = true)
     {
         if (!filter_var($email,\FILTER_VALIDATE_EMAIL))
             throw new InvalidArgumentException(
@@ -267,32 +314,94 @@ class Ticket extends Rest
                     $email
                 )
             );
-        $json = $this->restCall(
-            $this->getGetTicketUrl(
-                array(
-                    'search' => self::SEARCH_EMAIL,
-                    'value' => $email,
-                )
+
+        return $this->getTickets(
+            array(
+                'search' => self::SEARCH_EMAIL,
+                'value' => $email,
             ),
-            self::METHOD_GET
+            $models
         );
-        if (!$json)
+    }
+
+    /**
+     * Get open tickets for $email
+     * @param string $email
+     * @param bool $models
+     * @return null|\stdClass|array
+     * @throws \InvalidArgumentException
+     */
+    public function getOpenTicketsByEmail($email, $models = true)
+    {
+        if (!filter_var($email, \FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    '%s is not a valid email address',
+                    $email
+                )
+            );
+        }
+
+        return $this->getTickets(
+            array(
+                'search' => self::SEARCH_EMAIL,
+                'filter' => self::FILTER_OPEN,
+                'value' => $email,
+            ),
+            $models
+        );
+    }
+
+    /**
+     * Get tickets that are neither closed or resolved
+     * @todo can we use a filter
+     * @param string $email
+     * @return null|array
+     */
+    public function getActiveTicketsByEmail($email)
+    {
+        $tickets = $this->getTicketsByEmail($email);
+        if (!$tickets)
             return null;
-        return json_decode($json);
+        $return = array();
+        for ($i=0, $j=count($tickets);$i<$j;++$i)
+        {
+            if ($tickets[$i]->status < TicketM::STATUS_RESOLVED)
+                $return[] = $tickets[$i];
+        }
+        return $return;
+    }
+
+    /**
+     * @todo can we use a filter
+     * @param string $email
+     * @return array<\stdClass>
+     */
+    public function getResolvedTicketsByEmail($email)
+    {
+        $tickets = $this->getTicketsByEmail($email);
+        $return = array();
+        for ($i=0, $j=count($tickets);$i<$j;++$i)
+        {
+            if ($tickets[$i]->status === TicketM::STATUS_RESOLVED)
+                $return[] = $tickets[$i]->display_id;
+        }
+        return $return;
     }
 
     /**
      * get organized array of tickets by email
+     *
+     * @todo filter ?
+     *
      * @param ContactM|string $contact
      * @param bool $assoc = true
      * @return array
      */
-    public function getGroupedTickets($contact, $assoc = true)
+    public function getGroupedTicketsByEmail($email, $assoc = true)
     {
-        if ($contact instanceof ContactM)
-            $contact = $contact->getEmail();
         $getter = $assoc === true ? 'getStatusName' : 'getStatus';
-        $tickets = $this->getTicketsByEmail($contact);
+        $tickets = $this->getTicketsByEmail($email);
         $groups = array();
         foreach ($tickets as $ticket)
         {
@@ -306,11 +415,13 @@ class Ticket extends Rest
     }
 
     /**
+     * @todo filter ?
+     *
      * @param $email
      * @param int $status
      * @return array|null
      */
-    public function getTicketIds($email, $status = TicketM::STATUS_ALL)
+    public function getTicketIdsByEmail($email, $status = TicketM::STATUS_ALL)
     {
         $tickets = $this->getTicketsByEmail($email);
         if (!$tickets)
@@ -325,39 +436,10 @@ class Ticket extends Rest
     }
 
     /**
-     * Get open tickets for $email
-     * @param string $email
-     * @return null|\stdClass|array
-     * @throws \InvalidArgumentException
-     */
-    public function getOpenTickets($email)
-    {
-        if (!filter_var($email, \FILTER_VALIDATE_EMAIL))
-            throw new InvalidArgumentException(
-                sprintf(
-                    '%s is not a valid email address',
-                    $email
-                )
-            );
-        $json = $this->restCall(
-            $this->getGetTicketUrl(
-                array(
-                    'search' => self::SEARCH_EMAIL,
-                    'filter' => self::FILTER_OPEN,
-                    'value' => $email,
-                )
-            ),
-            self::METHOD_GET
-        );
-        if (!$json)
-            return null;
-        return json_decode(
-            $json
-        );
-    }
-
-    /**
      * Get tickets in view, specify page, defaults to 0 === get all pages
+     *
+     * @todo getGetTicketUrl
+     *
      * @param int $viewId
      * @param int $page = 0
      * @return array
@@ -428,7 +510,7 @@ class Ticket extends Rest
             $this->restCall(
                 sprintf(
                     '/helpdesk/tickets/%s.json',
-                    $model->getDisplayId()
+                    $model->getDisplayId() // @todo must this not be getId ?
                 ),
                 self::METHOD_GET
             )
@@ -447,7 +529,7 @@ class Ticket extends Rest
         if (empty($notes))
         {
             $model = $this->getFullTicket(
-                $model->getDisplayId(),
+                $model->getDisplayId(), // @todo must this not be getId ?
                 $model
             );
             $notes = $model->getNotes();
@@ -467,41 +549,6 @@ class Ticket extends Rest
     }
 
     /**
-     * Get tickets that are neither closed or resolved
-     * @param string $email
-     * @return null|array
-     */
-    public function getActiveTickets($email)
-    {
-        $tickets = $this->getTicketsByEmail($email);
-        if (!$tickets)
-            return null;
-        $return = array();
-        for ($i=0, $j=count($tickets);$i<$j;++$i)
-        {
-            if ($tickets[$i]->status < TicketM::STATUS_RESOLVED)
-                $return[] = $tickets[$i];
-        }
-        return $return;
-    }
-
-    /**
-     * @param string $email
-     * @return array<\stdClass>
-     */
-    public function getResolvedTickets($email)
-    {
-        $tickets = $this->getTicketsByEmail($email);
-        $return = array();
-        for ($i=0, $j=count($tickets);$i<$j;++$i)
-        {
-            if ($tickets[$i]->status === TicketM::STATUS_RESOLVED)
-                $return[] = $tickets[$i]->display_id;
-        }
-        return $return;
-    }
-
-    /**
      * Set displayId on model, pass to this function to auto-complete
      * @param TicketM $ticket
      * @return TicketM
@@ -512,7 +559,7 @@ class Ticket extends Rest
             $this->restCall(
                 sprintf(
                     '/helpdesk/tickets/%d.json',
-                    $ticket->getDisplayId()
+                    $ticket->getDisplayId() // @todo must this not be getId ?
                 ),
                 self::METHOD_GET
             )
@@ -559,7 +606,7 @@ class Ticket extends Rest
     {
         $url = sprintf(
             '/helpdesk/tickets/%d.json',
-            $ticket->getDisplayId()
+            $ticket->getDisplayId() // @todo must this not be getId ?
         );
         $data = $ticket->toJsonData();
         $response = json_decode(
@@ -585,7 +632,7 @@ class Ticket extends Rest
     {
         $url = sprintf(
             '/helpdesk/tickets/%d.json',
-            $ticket->getDisplayId()
+            $ticket->getDisplayId() // @todo must this not be getId ?
         );
         $response = $ticket->toJsonData();
         $response = json_decode(
@@ -608,7 +655,7 @@ class Ticket extends Rest
     {
         $url = sprintf(
             '/helpdesk/tickets/%d/restore.json',
-            $ticket->getDisplayId()
+            $ticket->getDisplayId() // @todo must this not be getId ?
         );
         $response = json_decode(
             $this->restCall(
@@ -637,14 +684,14 @@ class Ticket extends Rest
             throw new \InvalidArgumentException(
                 sprintf(
                     'Failed to assign ticket #%d to "%s", responder must be a positive numeric value',
-                    $ticket->getDisplayId(),
+                    $ticket->getDisplayId(), // @todo must this not be getId ?
                     $responder
                 )
             );
         }
         $url = sprintf(
             '/helpdesk/tickets/%d/assign.json?responder_id=%d',
-            $ticket->getDisplayId(),
+            $ticket->getDisplayId(), // @todo must this not be getId ?
             (int) $responder
         );
         $response = json_decode(
@@ -671,7 +718,7 @@ class Ticket extends Rest
         $url = sprintf(
             '/helpdesk/tickets/%d/conversations/note.json',
             $note->getTicket()
-                ->getDisplayId()
+                ->getDisplayId() // @todo must this not be getId ?
         );
         $response = json_decode(
             $this->restCall(
