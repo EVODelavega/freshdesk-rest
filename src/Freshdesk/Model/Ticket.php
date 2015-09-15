@@ -184,6 +184,66 @@ class Ticket extends Base
     protected $statusName = null;
 
     /**
+     * @var bool
+     */
+    protected $delta = false;
+
+    /**
+     * @var int
+     */
+    protected $ownerId = null;
+
+    /**
+     * @var string
+     */
+    protected $toEmail = null;
+
+    /**
+     * @var bool
+     */
+    protected $trained = false;
+
+    /**
+     * @var bool
+     */
+    protected $urgent = false;
+
+    /**
+     * @var string
+     */
+    protected $requesterStatusName = null;
+
+    /**
+     * @var string
+     */
+    protected $priorityName = null;
+
+    /**
+     * @var string
+     */
+    protected $sourceName = null;
+
+    /**
+     * @var string
+     */
+    protected $requesterName = null;
+
+    /**
+     * @var string
+     */
+    protected $responderName = null;
+
+    /**
+     * @var int
+     */
+    protected $productId = null;
+
+    /**
+     * @var string ?
+     */
+    protected $toEmails = null;
+
+    /**
      * @var array - add all setters that require a DateTime instance as argument
      */
     protected $toDateTime = array(
@@ -197,6 +257,7 @@ class Ticket extends Base
      */
     protected $mandatory = array(
         'requesterId' => array('email', 'phone', 'twitterId'),
+        array('description', 'descriptionHtml'),
     );
 
     /**
@@ -262,7 +323,7 @@ class Ticket extends Base
     {
         return $this->phone;
     }
- 
+
     /**
      * @param $phone
      */
@@ -271,7 +332,7 @@ class Ticket extends Base
         $this->phone = $phone;
         return $this;
     }
- 
+
     /**
      * @return twitterId
      */
@@ -279,7 +340,7 @@ class Ticket extends Base
     {
         return $this->twitterId;
     }
- 
+
     /**
      * @param $twitterId
      */
@@ -288,7 +349,7 @@ class Ticket extends Base
         $this->twitterId = $twitterId;
         return $this;
     }
- 
+
     /**
      * @return name
      */
@@ -296,7 +357,7 @@ class Ticket extends Base
     {
         return $this->name;
     }
- 
+
     /**
      * @param $name
      */
@@ -305,7 +366,7 @@ class Ticket extends Base
         $this->name = $name;
         return $this;
     }
- 
+
     /**
      * @param int $reqId
      * @return $this
@@ -367,7 +428,7 @@ class Ticket extends Base
     {
         return $this->descriptionHtml;
     }
- 
+
     /**
      * @param $descriptionHtml
      */
@@ -375,7 +436,7 @@ class Ticket extends Base
     {
         $this->descriptionHtml = $descriptionHtml;
     }
- 
+
     /**
      * @param int $status
      * @return $this
@@ -419,7 +480,7 @@ class Ticket extends Base
     {
         return $this->source;
     }
- 
+
     /**
      * @param $source
      */
@@ -428,7 +489,7 @@ class Ticket extends Base
         $this->source = $source;
         return $this;
     }
- 
+
     /**
      * @param bool $deleted
      * @return $this
@@ -454,7 +515,7 @@ class Ticket extends Base
     {
         return $this->spam;
     }
- 
+
     /**
      * @param $spam
      */
@@ -463,7 +524,7 @@ class Ticket extends Base
         $this->spam = $spam;
         return $this;
     }
- 
+
     /**
      * @param int $respId
      * @return $this
@@ -489,7 +550,7 @@ class Ticket extends Base
     {
         return $this->groupId;
     }
- 
+
     /**
      * @param $groupId
      */
@@ -497,7 +558,7 @@ class Ticket extends Base
     {
         $this->groupId = $groupId;
     }
- 
+
     /**
      * @return ticketType
      */
@@ -505,7 +566,7 @@ class Ticket extends Base
     {
         return $this->ticketType;
     }
- 
+
     /**
      * @param $ticketType
      */
@@ -514,7 +575,7 @@ class Ticket extends Base
         $this->ticketType = $ticketType;
         return $this;
     }
- 
+
     /**
      * @param string $ccemail
      * @return $this
@@ -544,7 +605,7 @@ class Ticket extends Base
         return $this->ccEmails;
     }
      */
- 
+
     /**
      * @param $ccEmails
      */
@@ -555,7 +616,7 @@ class Ticket extends Base
         return $this;
     }
      */
- 
+
     /**
      * @return emailConfigId
      */
@@ -563,7 +624,7 @@ class Ticket extends Base
     {
         return $this->emailConfigId;
     }
- 
+
     /**
      * @param $emailConfigId
      */
@@ -572,7 +633,7 @@ class Ticket extends Base
         $this->emailConfigId = $emailConfigId;
         return $this;
     }
- 
+
     /**
      * @return isescalated
      */
@@ -580,7 +641,7 @@ class Ticket extends Base
     {
         return $this->isescalated;
     }
- 
+
     /**
      * @param $isescalated
      */
@@ -588,7 +649,7 @@ class Ticket extends Base
     {
         $this->isescalated = $isescalated;
     }
- 
+
     /**
      * @return dueBy
      */
@@ -596,7 +657,7 @@ class Ticket extends Base
     {
         return $this->dueBy;
     }
- 
+
     /**
      * @param DateTime $dueBy
      */
@@ -605,7 +666,7 @@ class Ticket extends Base
         $this->dueBy = $dueBy;
         return $this;
     }
- 
+
     /**
      * @param int $id
      * @return $this
@@ -631,7 +692,7 @@ class Ticket extends Base
     {
         return $this->attachments;
     }
- 
+
     /**
      * @param $attachments
      */
@@ -640,7 +701,7 @@ class Ticket extends Base
         $this->attachments = $attachments;
         return $this;
     }
- 
+
     /**
      * @param mixed $mixed
      * @return $this
@@ -797,7 +858,7 @@ class Ticket extends Base
             return $this->updatedAt;
         return ($this->updatedAt === null ? '' : $this->updatedAt->format('Y-m-d H:i:s'));
     }
- 
+
     /**
      * @param $updatedAt
      */
@@ -843,7 +904,7 @@ class Ticket extends Base
         }
         return $return;
     }
- 
+
     /**
      * @return statusName
      */
@@ -851,13 +912,217 @@ class Ticket extends Base
     {
         return $this->statusName;
     }
- 
+
     /**
      * @param $statusName
      */
     public function setStatusName($statusName)
     {
         $this->statusName = $statusName;
+        return $this;
+    }
+
+    /**
+     * @return delta
+     */
+    public function getDelta()
+    {
+        return $this->delta;
+    }
+
+    /**
+     * @param $delta
+     */
+    public function setDelta($delta)
+    {
+        $this->delta = $delta;
+        return $this;
+    }
+
+    /**
+     * @return ownerId
+     */
+    public function getOwnerId()
+    {
+        return $this->ownerId;
+    }
+
+    /**
+     * @param $ownerId
+     */
+    public function setOwnerId($ownerId)
+    {
+        $this->ownerId = $ownerId;
+        return $this;
+    }
+
+    /**
+     * @return toEmail
+     */
+    public function getToEmail()
+    {
+        return $this->toEmail;
+    }
+
+    /**
+     * @param $toEmail
+     */
+    public function setToEmail($toEmail)
+    {
+        $this->toEmail = $toEmail;
+        return $this;
+    }
+
+    /**
+     * @return trained
+     */
+    public function getTrained()
+    {
+        return $this->trained;
+    }
+
+    /**
+     * @param $trained
+     */
+    public function setTrained($trained)
+    {
+        $this->trained = $trained;
+        return $this;
+    }
+
+    /**
+     * @return urgent
+     */
+    public function getUrgent()
+    {
+        return $this->urgent;
+    }
+
+    /**
+     * @param $urgent
+     */
+    public function setUrgent($urgent)
+    {
+        $this->urgent = $urgent;
+        return $this;
+    }
+
+    /**
+     * @return requesterStatusName
+     */
+    public function getRequesterStatusName()
+    {
+        return $this->requesterStatusName;
+    }
+
+    /**
+     * @param $requesterStatusName
+     */
+    public function setRequesterStatusName($requesterStatusName)
+    {
+        $this->requesterStatusName = $requesterStatusName;
+        return $this;
+    }
+
+    /**
+     * @return priorityName
+     */
+    public function getPriorityName()
+    {
+        return $this->priorityName;
+    }
+
+    /**
+     * @param $priorityName
+     */
+    public function setPriorityName($priorityName)
+    {
+        $this->priorityName = $priorityName;
+        return $this;
+    }
+
+    /**
+     * @return sourceName
+     */
+    public function getSourceName()
+    {
+        return $this->sourceName;
+    }
+
+    /**
+     * @param $sourceName
+     */
+    public function setSourceName($sourceName)
+    {
+        $this->sourceName = $sourceName;
+        return $this;
+    }
+
+    /**
+     * @return requesterName
+     */
+    public function getRequesterName()
+    {
+        return $this->requesterName;
+    }
+
+    /**
+     * @param $requesterName
+     */
+    public function setRequesterName($requesterName)
+    {
+        $this->requesterName = $requesterName;
+        return $this;
+    }
+
+    /**
+     * @return responderName
+     */
+    public function getResponderName()
+    {
+        return $this->responderName;
+    }
+
+    /**
+     * @param $responderName
+     */
+    public function setResponderName($responderName)
+    {
+        $this->responderName = $responderName;
+        return $this;
+    }
+
+    /**
+     * @return productId
+     */
+    public function getProductId()
+    {
+        return $this->productId;
+    }
+
+    /**
+     * @param $productId
+     */
+    public function setProductId($productId)
+    {
+        $this->productId = $productId;
+        return $this;
+    }
+
+    /**
+     * @return toEmails
+     */
+    public function getToEmails()
+    {
+        return $this->toEmails;
+    }
+
+    /**
+     * @param $toEmails
+     */
+    public function setToEmails($toEmails)
+    {
+        $this->toEmails = $toEmails;
         return $this;
     }
 
