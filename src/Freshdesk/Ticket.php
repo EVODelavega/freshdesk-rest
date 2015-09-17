@@ -286,15 +286,16 @@ class Ticket extends Rest
      */
     protected function returnTickets($json, $models)
     {
+        $data = json_decode($json, true);
         if (true === $models) {
             $out = array();
-            foreach ($json as $ticket)
+            foreach ($data as $ticket)
             {
                 $out[] = new TicketM($ticket);
             }
             return $out;
         } else {
-            return json_decode($json, true);
+            return $data;
         }
     }
 
