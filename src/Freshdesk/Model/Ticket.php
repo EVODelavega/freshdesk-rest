@@ -766,11 +766,6 @@ class Ticket extends Base
         return $this;
     }
 
-    public function getCustomFields()
-    {
-        return $this->customField;
-    }
-
     /**
      * Set multiple tags on the ticket
      *
@@ -1137,7 +1132,7 @@ class Ticket extends Base
         $data['cc_emails'] = $this->getCcEmailVal();
 
         $custom = array();
-        $customFields = $this->getCustomFields();
+        $customFields = $this->getCustomField();
         /** @var \Freshdesk\Model\CustomField $f */
         foreach ($customFields as $f)
         {
