@@ -756,4 +756,34 @@ class Ticket extends Rest
         //todo set properties on Note instance
         return $note->setAll($response);
     }
+
+    /**
+     * get the available ticket fields
+     *
+     * @return array<stdClass>
+     */
+    public function getTicketFields()
+    {
+        $url = '/ticket_fields.json';
+
+        $responseKey = 'ticket_field';
+
+        $response = json_decode(
+            $this->restCall(
+                $url,
+                self::METHOD_GET
+            )
+        );
+
+        $out = array();
+
+        foreach ($response as $ticketField) {
+            if (isset($ticketField->ticket_field)
+                && is_object($ticketField->ticket_field)) {
+                $out[] = $ticketField->ticket_field;
+            }
+        }
+
+        return $out;
+    }
 }
