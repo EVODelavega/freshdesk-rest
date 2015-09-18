@@ -93,6 +93,7 @@ class Note extends Base
         'id',
         'createdAt', // dont post this to freshdesk
         'updatedAt', // dont post this to freshdesk
+        'ticket', // hack to avoid sending ticket inside the note
     );
 
     /**
