@@ -273,6 +273,20 @@ class Ticket extends Base
         'customField', // cheat
         'requesterNotes', // @todo must use new way to determine fields
         'notes', // must be updated via notes uri
+        'descriptionHtml', // must not be passed with description
+        'statusName',
+        'delta',
+        'ownerId',
+        'toEmail',
+        'trained',
+        'urgent',
+        'requesterStatusName',
+        'priorityName',
+        'sourceName',
+        'requesterName',
+        'responderName',
+        'productId',
+        'toEmails',
     );
 
     /**
