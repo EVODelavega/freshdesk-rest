@@ -268,6 +268,7 @@ class Ticket extends Base
         'attachments',
         'displayId',
         'createdAt', // let freshdesk update this
+        'updatedAt', // let freshdesk update this
         'ccEmailVal', // cheat
         'customField', // cheat
     );
