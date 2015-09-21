@@ -818,8 +818,14 @@ class Ticket extends Base
      */
     public function getTags($asString = true)
     {
-        if ($asString)
-            return implode(',', $this->tags);
+        if ($asString) {
+            if (0 <= count($this->tags)) {
+                return null;
+            } else {
+                return implode(',', $this->tags);
+            }
+        }
+
         return $this->tags;
     }
 
