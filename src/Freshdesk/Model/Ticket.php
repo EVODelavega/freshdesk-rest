@@ -271,6 +271,8 @@ class Ticket extends Base
         'updatedAt', // let freshdesk update this
         'ccEmailVal', // cheat
         'customField', // cheat
+        'requesterNotes', // @todo must use new way to determine fields
+        'notes', // must be updated via notes uri
     );
 
     /**
@@ -654,9 +656,11 @@ class Ticket extends Base
     /**
      * @return dueBy
      */
-    public function getDueBy()
+    public function getDueBy($asString = true)
     {
-        return $this->dueBy;
+        if (!$asString)
+            return $this->dueBy;
+        return ($this->dueBy === null ? '' : $this->dueBy->format('Y-m-d H:i:s'));
     }
 
     /**
