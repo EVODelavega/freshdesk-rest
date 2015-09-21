@@ -306,7 +306,8 @@ abstract class Base implements \Freshdesk\Model, Iterator
             if (in_array($fieldName, $this->readOnlyFields)) {
                 continue;
             }
-            if (null !== $value) {
+            if ((null !== $value && !is_array($value))
+                || (is_array($value) && 0 < count($value))) {
                 $jsonFieldName = $this->getJsonFieldName($getter);
                 if ($value instanceof \Freshdesk\Model) {
                     $jsonArray[$jsonFieldName] = $value->toJsonData(false);
