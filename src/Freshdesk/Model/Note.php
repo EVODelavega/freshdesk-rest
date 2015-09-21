@@ -38,7 +38,7 @@ class Note extends Base
     /**
      * @var bool
      */
-    protected $deleted = false;
+    protected $deleted = null;
 
     /**
      * @var int
@@ -48,12 +48,12 @@ class Note extends Base
     /**
      * @var bool
      */
-    protected $incoming = false;
+    protected $incoming = null;
 
     /**
      * @var int
      */
-    protected $source = 0;
+    protected $source = null;
 
     /**
      * @var \DateTime

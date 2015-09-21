@@ -186,7 +186,7 @@ class Ticket extends Base
     /**
      * @var bool
      */
-    protected $delta = false;
+    protected $delta = null;
 
     /**
      * @var int
@@ -201,12 +201,12 @@ class Ticket extends Base
     /**
      * @var bool
      */
-    protected $trained = false;
+    protected $trained = null;
 
     /**
      * @var bool
      */
-    protected $urgent = false;
+    protected $urgent = null;
 
     /**
      * @var string
