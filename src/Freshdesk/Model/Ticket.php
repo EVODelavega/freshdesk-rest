@@ -674,7 +674,7 @@ class Ticket extends Base
     {
         if (!$asString)
             return $this->dueBy;
-        return ($this->dueBy === null ? '' : $this->dueBy->format('Y-m-d H:i:s'));
+        return ($this->dueBy === null ? null : $this->dueBy->format('Y-m-d H:i:s'));
     }
 
     /**
