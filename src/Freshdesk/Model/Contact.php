@@ -1,5 +1,7 @@
 <?php
+
 namespace Freshdesk\Model;
+
 class Contact extends Base
 {
     const RESPONSE_KEY = 'user';
@@ -105,6 +107,26 @@ class Contact extends Base
     protected $toDateTime = array(
         'setCreatedAt',
         'setUpdatedAt',
+    );
+
+    /**
+     * @var array
+     */
+    protected $mandatory  =array(
+        'name',
+        array('email', 'phone', 'mobile'),
+    );
+
+    /**
+     * @var array
+     */
+    protected $readOnlyFields = array(
+        'id',
+        'helpdeskAgent',
+        'active',
+        'externalId',
+        'createdAt', // dont post this to freshdesk
+        'updatedAt', // dont post this to freshdesk
     );
 
     /**
@@ -447,22 +469,5 @@ class Contact extends Base
     {
         $this->updatedAt = $arg;
         return $this;
-    }
-
-    /**
-     * No POST requests supported ATM
-     * @return string
-     */
-    public function toJsonData()
-    {
-        return json_encode(
-            array(
-                self::RESPONSE_KEY  => array(
-                    'id'    => $this->getId(),
-                    'email' => $this->getEmail(),
-                    'name'  => $this->getName()
-                )
-            )
-        );
     }
 }
