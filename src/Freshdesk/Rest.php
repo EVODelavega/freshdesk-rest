@@ -160,7 +160,7 @@ class Rest
      * @throws \RuntimeException
      * @throws \InvalidArgumentException
      */
-    protected function restCall($urlMinusDomain, $method, $postData = '',$debugMode=false)
+    public function restCall($urlMinusDomain, $method, $postData = '',$debugMode=false)
     {
         if ($urlMinusDomain{0} !== '/')
             $urlMinusDomain = '/'.$urlMinusDomain;
